@@ -1,9 +1,11 @@
-# SICEP — automatizaciones de convocatorias
+# SICEP TenderExpert
 
-> Proyecto desarrollado por **Allison Cubillos** ([@allisoncubillos-bot](https://github.com/allisoncubillos-bot)).
-> Automatiza el seguimiento de convocatorias de compra de energía del mercado
-> regulado colombiano (SICEP MEM): audiencias públicas, pliegos definitivos,
-> resúmenes con IA, y notificaciones a Google Calendar y Slack.
+> **Sistema automatizado de extracción y análisis de datos de contratación del
+> Mercado Regulado (SICEP MEM): audiencias públicas y pliegos, con resúmenes por IA.**
+>
+> Desarrollado por **Allison Cubillos** ([@allisoncubillos-bot](https://github.com/allisoncubillos-bot)).
+> Integra scraping de SICEP, Google Calendar, Slack y la API de Claude para
+> convertir las convocatorias del mercado en información lista para decidir.
 
 Dos automatizaciones independientes sobre la plataforma SICEP MEM
 (`sicep.xm.com.co`) para el mercado regulado colombiano:
