@@ -49,7 +49,7 @@ Comparten el `.env`, el entorno virtual y varios módulos.
 
 ## 1. Instalación
 
-Desde esta carpeta (`sicep_audiencias/`), en PowerShell:
+Desde esta carpeta (`TenderRadar/`), en PowerShell (Windows) o bash (Mac):
 
 ```powershell
 python -m venv .venv
@@ -148,37 +148,42 @@ python run_daily.py
 
 ## 5. Programar en Windows Task Scheduler
 
-Cada flujo tiene su `.bat`. En **PowerShell como Administrador**:
+Estado real (verificado 2026-08-10): dos tareas, **"SICEP Pliegos Dias Habiles"**
+(diario L-V 9:00am) y **"SICEP Audiencias Semanal"** (lunes 8:30am), ambas con
+un trigger extra **"Al iniciar sesión"** para que corran también cada vez que
+se prende/inicia sesión en el PC (no solo el día/hora fijo — la lógica de
+dedup de `estado_pliegos.json` y de `calendar_client.py` hace que correr de
+más sea seguro, nunca duplica).
 
-### Semanal (lunes 8:30 am)
 ```powershell
 $cred = Get-Credential -UserName "$env:USERNAME" -Message "Contrasena de Windows"
-$accion = New-ScheduledTaskAction -Execute "c:\Users\User\Documents\bia-file-compiler\sicep_audiencias\run_weekly.bat"
-$disparador = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At "8:30am"
-$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -WakeToRun -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-Register-ScheduledTask -TaskName "SICEP Audiencias Semanal" -Action $accion -Trigger $disparador -Settings $settings -User $cred.UserName -Password $cred.GetNetworkCredential().Password -RunLevel Highest
-```
 
-### Diario (7:30 am)
-```powershell
-$cred = Get-Credential -UserName "$env:USERNAME" -Message "Contrasena de Windows"
-$accion = New-ScheduledTaskAction -Execute "c:\Users\User\Documents\bia-file-compiler\sicep_audiencias\run_daily.bat"
-$disparador = New-ScheduledTaskTrigger -Daily -At "7:30am"
+$accionSemanal = New-ScheduledTaskAction -Execute "c:\Users\User\Documents\sicep-intelligence\TenderRadar\run_weekly.bat"
+$disparadorSemanal = @(
+  New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At "8:30am"
+  New-ScheduledTaskTrigger -AtLogOn
+)
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -WakeToRun -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-Register-ScheduledTask -TaskName "SICEP Pliegos Diario" -Action $accion -Trigger $disparador -Settings $settings -User $cred.UserName -Password $cred.GetNetworkCredential().Password -RunLevel Highest
+Register-ScheduledTask -TaskName "SICEP Audiencias Semanal" -Action $accionSemanal -Trigger $disparadorSemanal -Settings $settings -User $cred.UserName -Password $cred.GetNetworkCredential().Password -RunLevel Highest
+
+$accionDiario = New-ScheduledTaskAction -Execute "c:\Users\User\Documents\sicep-intelligence\TenderRadar\run_daily.bat"
+$disparadorDiario = @(
+  New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At "9:00am"
+  New-ScheduledTaskTrigger -AtLogOn
+)
+Register-ScheduledTask -TaskName "SICEP Pliegos Dias Habiles" -Action $accionDiario -Trigger $disparadorDiario -Settings $settings -User $cred.UserName -Password $cred.GetNetworkCredential().Password -RunLevel Highest
 ```
 
 - `-StartWhenAvailable`: si el PC estaba apagado a la hora, corre al encenderlo.
 - `-WakeToRun`: lo despierta si está suspendido.
+- `AtLogOn`: corre también cada inicio de sesión, sin esperar al horario fijo.
 - Logs: `sicep_audiencias.log` y `sicep_pliegos.log`.
 
 Probar sin esperar:
 ```powershell
-Start-ScheduledTask -TaskName "SICEP Pliegos Diario"
+Start-ScheduledTask -TaskName "SICEP Pliegos Dias Habiles"
 Get-Content .\sicep_pliegos.log -Tail 20
 ```
-
----
 
 ## 6. Solución de problemas
 
@@ -190,6 +195,14 @@ Get-Content .\sicep_pliegos.log -Tail 20
 | No encuentra el pliego/Excel | Los agentes nombran sus archivos distinto; el scraper toma el `.pdf` y el `.xlsx` visibles en la pestaña de pliegos. |
 | `invalid_grant` en Google | El refresh token expiró; corre `setup_google_oauth.py`. |
 | Cantidades en unidad equivocada | Claude detecta la unidad del Excel; si un pliego trae una estructura rara, revisa el Excel descargado. |
+
+---
+
+## 7. Migrar a Mac
+
+Ver [`MIGRACION-A-MAC.md`](../MIGRACION-A-MAC.md) en la raíz del repo — guía
+completa (launchd en vez de Task Scheduler) pensada tanto para seguirla a mano
+como para dársela a Claude Code en el Mac y que la ejecute paso a paso.
 
 ---
 
